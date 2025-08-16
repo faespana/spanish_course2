@@ -1,0 +1,55 @@
+<!-- Dentro de renderGrid(), cambiamos la parte que genera el cardHtml -->
+function renderGrid() {
+    grid.innerHTML = '';
+    const searchTerm = searchInput.value.toLowerCase();
+    
+    const filteredData = vocabularyData.filter(item => {
+        const inCategory = activeFilter === 'Todos' || item.category === activeFilter;
+        const inSearch = item.es.toLowerCase().includes(searchTerm);
+        return inCategory && inSearch;
+    });
+
+    if (filteredData.length === 0) {
+        noResults.classList.remove('hidden');
+        grid.classList.add('hidden');
+    } else {
+        noResults.classList.add('hidden');
+        grid.classList.remove('hidden');
+    }
+
+    filteredData.forEach((item, index) => {
+        const cardHtml = `
+            <div class="card-container h-32 md:h-36 relative">
+                <div class="card w-full h-full">
+                    <div class="card-face card-front p-2 text-center flex flex-col justify-center items-center">
+                        <span class="text-base font-semibold text-gray-800">${item.es}</span>
+                        <button onclick="speak('${item.es.replace(/'/g, "\\'")}')" 
+                                class="mt-2 text-blue-600 hover:text-blue-800">
+                            🔊
+                        </button>
+                    </div>
+                    <div class="card-face card-back p-2 flex flex-col justify-center items-center text-center">
+                        <span class="text-xl font-bold">${item.ch}</span>
+                        <span class="text-sm text-blue-800 opacity-90 mt-1">${item.pi}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        grid.innerHTML += cardHtml;
+    });
+
+    document.querySelectorAll('.card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (!e.target.closest('button')) { // Evita girar si se hace clic en el botón de audio
+                card.classList.toggle('is-flipped');
+            }
+        });
+    });
+}
+
+// Nueva función para pronunciar en español
+function speak(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+    speechSynthesis.speak(utterance);
+}
