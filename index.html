@@ -1,55 +1,197 @@
-<!-- Dentro de renderGrid(), cambiamos la parte que genera el cardHtml -->
-function renderGrid() {
-    grid.innerHTML = '';
-    const searchTerm = searchInput.value.toLowerCase();
-    
-    const filteredData = vocabularyData.filter(item => {
-        const inCategory = activeFilter === 'Todos' || item.category === activeFilter;
-        const inSearch = item.es.toLowerCase().includes(searchTerm);
-        return inCategory && inSearch;
-    });
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glosario Interactivo de Minería</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4;
+            color: #4a4a4a;
+        }
+        .card-container {
+            perspective: 1000px;
+        }
+        .card {
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+        .card.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 0.75rem;
+        }
+        .card-front {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+        .card-back {
+            background-color: #e3f2fd;
+            color: #1e3a8a;
+            transform: rotateY(180deg);
+        }
+        .filter-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .filter-btn.active {
+            background-color: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto px-4 py-8 md:py-12">
+        <header class="text-center mb-8 md:mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Glosario Interactivo de Minería</h1>
+            <p class="mt-2 text-lg text-gray-600">Vocabulario para construcción y operación diaria</p>
+        </header>
 
-    if (filteredData.length === 0) {
-        noResults.classList.remove('hidden');
-        grid.classList.add('hidden');
-    } else {
-        noResults.classList.add('hidden');
-        grid.classList.remove('hidden');
-    }
-
-    filteredData.forEach((item, index) => {
-        const cardHtml = `
-            <div class="card-container h-32 md:h-36 relative">
-                <div class="card w-full h-full">
-                    <div class="card-face card-front p-2 text-center flex flex-col justify-center items-center">
-                        <span class="text-base font-semibold text-gray-800">${item.es}</span>
-                        <button onclick="speak('${item.es.replace(/'/g, "\\'")}')" 
-                                class="mt-2 text-blue-600 hover:text-blue-800">
-                            🔊
-                        </button>
-                    </div>
-                    <div class="card-face card-back p-2 flex flex-col justify-center items-center text-center">
-                        <span class="text-xl font-bold">${item.ch}</span>
-                        <span class="text-sm text-blue-800 opacity-90 mt-1">${item.pi}</span>
-                    </div>
-                </div>
+        <div class="mb-8 md:mb-10">
+            <div id="filters" class="flex flex-wrap justify-center gap-2 md:gap-3 mb-4"></div>
+            <div class="max-w-xl mx-auto">
+                <input type="text" id="search" placeholder="Buscar un término en español..." class="w-full px-4 py-3 border border-gray-300 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
             </div>
-        `;
-        grid.innerHTML += cardHtml;
-    });
+        </div>
 
-    document.querySelectorAll('.card').forEach(card => {
-        card.addEventListener('click', (e) => {
-            if (!e.target.closest('button')) { // Evita girar si se hace clic en el botón de audio
-                card.classList.toggle('is-flipped');
+        <main id="vocabulary-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6"></main>
+        
+        <div id="no-results" class="text-center py-10 text-gray-500 text-xl hidden">
+            <p>No se encontraron resultados.</p>
+        </div>
+    </div>
+    <div class="flex justify-center items-center">
+        <div>Create with ❤️ by 菲利普</div>
+    </div>
+
+    <script>
+        const vocabularyData = [
+            { category: 'General', es: 'Empresa Minera', ch: '矿业公司', pi: 'Kuàngyè Gōngsī' },
+            { category: 'General', es: 'Mina', ch: '矿山', pi: 'Kuàngshān' },
+            { category: 'General', es: 'Mina a Cielo Abierto', ch: '露天矿', pi: 'Lùtiān Kuàng' },
+            { category: 'General', es: 'Construcción', ch: '施工', pi: 'Shīgōng' },
+            { category: 'General', es: 'Proyecto', ch: '项目', pi: 'Xiàngmù' },
+            { category: 'General', es: 'Equipo', ch: '团队', pi: 'Tuánduì' },
+            { category: 'General', es: 'Seguridad', ch: '安全', pi: 'Ānquán' },
+            { category: 'General', es: 'Salud', ch: '健康', pi: 'Jiànkāng' },
+            { category: 'General', es: 'Medio Ambiente', ch: '环境', pi: 'Huánjìng' },
+            { category: 'General', es: 'Permiso', ch: '许可证', pi: 'Xǔkězhèng' },
+            { category: 'General', es: 'Reunión', ch: '会议', pi: 'Huìyì' },
+            { category: 'General', es: 'Informe', ch: '报告', pi: 'Bàogào' },
+            { category: 'General', es: 'Horario', ch: '时间表', pi: 'Shíjiānbiǎo' },
+            { category: 'General', es: 'Supervisor', ch: '主管', pi: 'Zhǔguǎn' },
+            { category: 'General', es: 'Ingeniero', ch: '工程师', pi: 'Gōngchéngshī' }
+        ];
+
+        const grid = document.getElementById('vocabulary-grid');
+        const filtersContainer = document.getElementById('filters');
+        const searchInput = document.getElementById('search');
+        const noResults = document.getElementById('no-results');
+        
+        let activeFilter = 'Todos';
+        const categories = ['Todos', ...new Set(vocabularyData.map(item => item.category))];
+
+        function setupFilters() {
+            categories.forEach(category => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-100';
+                btn.textContent = category;
+                if (category === 'Todos') {
+                    btn.classList.add('active');
+                }
+                btn.addEventListener('click', () => {
+                    activeFilter = category;
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    searchInput.value = '';
+                    renderGrid();
+                });
+                filtersContainer.appendChild(btn);
+            });
+        }
+
+        function renderGrid() {
+            grid.innerHTML = '';
+            const searchTerm = searchInput.value.toLowerCase();
+            
+            const filteredData = vocabularyData.filter(item => {
+                const inCategory = activeFilter === 'Todos' || item.category === activeFilter;
+                const inSearch = item.es.toLowerCase().includes(searchTerm);
+                return inCategory && inSearch;
+            });
+
+            if (filteredData.length === 0) {
+                noResults.classList.remove('hidden');
+                grid.classList.add('hidden');
+            } else {
+                noResults.classList.add('hidden');
+                grid.classList.remove('hidden');
             }
-        });
-    });
-}
 
-// Nueva función para pronunciar en español
-function speak(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'es-ES';
-    speechSynthesis.speak(utterance);
-}
+            filteredData.forEach(item => {
+                const cardHtml = `
+                    <div class="card-container h-32 md:h-36 relative">
+                        <div class="card w-full h-full">
+                            <div class="card-face card-front p-2 text-center flex flex-col justify-center items-center">
+                                <span class="text-base font-semibold text-gray-800">${item.es}</span>
+                                <button onclick="speak('${item.es.replace(/'/g, "\\'")}')" 
+                                        class="mt-2 text-blue-600 hover:text-blue-800">
+                                    🔊
+                                </button>
+                            </div>
+                            <div class="card-face card-back p-2 flex flex-col justify-center items-center text-center">
+                                <span class="text-xl font-bold">${item.ch}</span>
+                                <span class="text-sm text-blue-800 opacity-90 mt-1">${item.pi}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += cardHtml;
+            });
+
+            document.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('button')) {
+                        card.classList.toggle('is-flipped');
+                    }
+                });
+            });
+        }
+
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-ES';
+            speechSynthesis.speak(utterance);
+        }
+
+        searchInput.addEventListener('input', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            const allButton = Array.from(document.querySelectorAll('.filter-btn')).find(b => b.textContent === 'Todos');
+            if (allButton) {
+                allButton.classList.add('active');
+            }
+            activeFilter = 'Todos';
+            renderGrid();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupFilters();
+            renderGrid();
+        });
+    </script>
+</body>
+</html>
